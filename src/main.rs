@@ -1,13 +1,14 @@
 mod bitly;
+mod clipboard;
 mod config;
-mod jconsole;
-mod jstring;
 
 use std::env;
 use std::process;
 
 use crate::config as cfg;
+
 use colored::Colorize;
+use jabba_lib::jconsole;
 
 /// Removes the trailing `'/'` character from the expanded URL if
 /// the original URL didn't have a trailing `'/'` character.
@@ -36,16 +37,27 @@ Tip: on the home page of bit.ly you can generate one for free.
     }
 }
 
-/// Returns the URL to be shortened.
+/// Returns a tuple of two elements. The first element is a URL.
+/// The second element is a bool, which shows how the URL was
+/// obtained. `true` means interactive input. `false` means command-line input.
 ///
 /// Takes the first command-line argument.
 /// If no command-line argument was given, then it reads the URL from the keyboard.
-fn read_url() -> String {
+fn read_url() -> (String, bool) {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() {
-        jconsole::input("Long URL: ")
+        (jconsole::input("Long URL: "), true)
     } else {
-        args[0].to_owned()
+        (args[0].to_owned(), false)
+    }
+}
+
+fn ask_to_copy_to_clipboard(url: &str) {
+    println!();
+    let resp = jconsole::input("Copy shortened URL to clipboard [Yn]? ");
+    if resp == "" || resp == "y" || resp == "Y" {
+        clipboard::set_text(url);
+        println!("# copied")
     }
 }
 
@@ -53,7 +65,11 @@ fn read_url() -> String {
 fn main() {
     check_api_key(); // may exit
 
-    let long_url = read_url();
+    let (long_url, is_interactive) = read_url();
+    if long_url.is_empty() {
+        eprintln!("Provide a valid URL");
+        process::exit(1);
+    }
     let url_id = bitly::shorten(&long_url);
     let short_url = format!("https://{url_id}");
     println!();
@@ -70,4 +86,7 @@ fn main() {
             format!("{}", "(does NOT match)".red().bold())
         }
     );
+    if is_interactive {
+        ask_to_copy_to_clipboard(&short_url);
+    }
 }
