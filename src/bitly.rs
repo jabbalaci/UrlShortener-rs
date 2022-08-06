@@ -1,13 +1,14 @@
 use crate::config as cfg;
 
 use std::collections::HashMap;
+use std::error::Error;
 
 use reqwest::header::{HeaderMap, AUTHORIZATION};
 
 /// Returns the shortened URL.
 ///
 /// From a long URL, it makes a shorter URL using the bit.ly API v4.
-pub fn shorten(url: &str) -> String {
+pub fn shorten(url: &str) -> Result<String, Box<dyn Error>> {
     let api_key = &*cfg::API_KEY;
     let api_url = cfg::API_URL;
 
@@ -20,19 +21,18 @@ pub fn shorten(url: &str) -> String {
         .post(shorten_url)
         .json(&params)
         .headers(headers)
-        .send()
-        .expect("calling the bit.ly API failed");
-    let body = response.text().expect("cannot extract response body");
-    let v: serde_json::Value =
-        serde_json::from_str(&body).expect("cannot convert response body to json");
-    v["id"]
-        .as_str()
-        .expect("problem with the 'id' field")
-        .to_string()
+        .send()?;
+    let body = response.text()?;
+    let v: serde_json::Value = serde_json::from_str(&body)?;
+    let result = v["id"].as_str();
+    match result {
+        Some(value) => Ok(value.to_string()),
+        _ => Err("problem with the 'id' field")?,
+    }
 }
 
 /// Expands a bit.ly shortened URL and returns the long URL.
-pub fn expand(url_id: &str) -> String {
+pub fn expand(url_id: &str) -> Result<String, Box<dyn Error>> {
     let api_key = &*cfg::API_KEY;
     let api_url = cfg::API_URL;
 
@@ -45,13 +45,12 @@ pub fn expand(url_id: &str) -> String {
         .post(expand_url)
         .json(&params)
         .headers(headers)
-        .send()
-        .expect("calling the bit.ly API failed");
-    let body = response.text().expect("cannot extract response body");
-    let v: serde_json::Value =
-        serde_json::from_str(&body).expect("cannot convert response body to json");
-    v["long_url"]
-        .as_str()
-        .expect("problem with the 'long_url' field")
-        .to_string()
+        .send()?;
+    let body = response.text()?;
+    let v: serde_json::Value = serde_json::from_str(&body)?;
+    let result = v["long_url"].as_str();
+    match result {
+        Some(value) => Ok(value.to_string()),
+        _ => Err("problem with the 'long_url' field")?,
+    }
 }

@@ -52,13 +52,22 @@ fn read_url() -> (String, bool) {
     }
 }
 
+/// Asks the user if (s)he wants to copy the short URL to the clipboard.
 fn ask_to_copy_to_clipboard(url: &str) {
     println!();
     let resp = jconsole::input("Copy shortened URL to clipboard [Yn]? ");
     if resp == "" || resp == "y" || resp == "Y" {
         clipboard::set_text(url);
         println!("# copied")
+    } else {
+        println!("# no");
     }
+}
+
+/// Prints an error message and terminates the program.
+fn print_error_and_exit(msg: &str) {
+    eprintln!("{}", msg);
+    process::exit(1);
 }
 
 /// Entry point.
@@ -67,15 +76,22 @@ fn main() {
 
     let (long_url, is_interactive) = read_url();
     if long_url.is_empty() {
-        eprintln!("Provide a valid URL");
-        process::exit(1);
+        print_error_and_exit("Provide a valid URL");
     }
     let url_id = bitly::shorten(&long_url);
+    if url_id.is_err() {
+        print_error_and_exit("Error: couldn't process the response from bit.ly");
+    }
+    let url_id = url_id.unwrap();
     let short_url = format!("https://{url_id}");
     println!();
     println!("{}", short_url.bold());
     println!();
     let expanded_url = bitly::expand(&url_id);
+    if expanded_url.is_err() {
+        print_error_and_exit("Error: couldn't process the response from bit.ly");
+    }
+    let expanded_url = expanded_url.unwrap();
     let expanded_url = trim_trailing_slash_if_necessary(&long_url, &expanded_url);
     println!(
         "# expanded from shortened URL: {} {}",
