@@ -7,7 +7,7 @@ use std::process;
 
 use crate::config as cfg;
 
-use colored::Colorize;
+use colored::*;
 use jabba_lib::jconsole;
 
 /// Removes the trailing `'/'` character from the expanded URL if
@@ -70,6 +70,30 @@ fn print_error_and_exit(msg: &str) {
     process::exit(1);
 }
 
+struct ColorSettings {
+    bold: bool,
+    red: bool,
+    green: bool,
+}
+
+fn colorize(text: &str, settings: ColorSettings) -> ColoredString {
+    let mut result: ColoredString = text.into();
+    if jabba_lib::jos::is_windows() {
+        return result;
+    }
+    // else
+    if settings.bold {
+        result = result.bold();
+    }
+    if settings.green {
+        result = result.green();
+    }
+    if settings.red {
+        result = result.red();
+    }
+    result
+}
+
 /// Entry point.
 fn main() {
     check_api_key(); // may exit
@@ -85,7 +109,18 @@ fn main() {
     let url_id = url_id.unwrap();
     let short_url = format!("https://{url_id}");
     println!();
-    println!("{}", short_url.bold());
+    // println!("{}", short_url.bold());
+    println!(
+        "{}",
+        colorize(
+            &short_url,
+            ColorSettings {
+                bold: true,
+                red: false,
+                green: false
+            }
+        )
+    );
     println!();
     let expanded_url = bitly::expand(&url_id);
     if expanded_url.is_err() {
@@ -97,9 +132,31 @@ fn main() {
         "# expanded from shortened URL: {} {}",
         expanded_url,
         if long_url == expanded_url {
-            format!("{}", "(matches)".green().bold())
+            // format!("{}", "(matches)".green().bold())
+            format!(
+                "{}",
+                colorize(
+                    "(matches)",
+                    ColorSettings {
+                        bold: true,
+                        red: false,
+                        green: true,
+                    }
+                )
+            )
         } else {
-            format!("{}", "(does NOT match)".red().bold())
+            // format!("{}", "(does NOT match)".red().bold())
+            format!(
+                "{}",
+                colorize(
+                    "(does NOT match)",
+                    ColorSettings {
+                        bold: true,
+                        red: true,
+                        green: false,
+                    }
+                )
+            )
         }
     );
     if is_interactive {

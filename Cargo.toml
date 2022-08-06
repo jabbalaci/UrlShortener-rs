@@ -1,6 +1,6 @@
 [package]
 name = "bitly-urlshortener"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Laszlo Szathmary, alias Jabba Laci <jabba.laci@gmail.com>"]
 edition = "2021"
 description = "A URL shortener command-line app. using bit.ly API v4."
